@@ -12,7 +12,7 @@ export async function GET(
   try {
     const {id} = params
     const todo = await prisma.todo.findUnique({
-      where: { id},
+      where: { id: Number(id)},
     });
     if (!todo) {
       return NextResponse.json({ message: "Todo not found" }, { status: 400 });
@@ -33,13 +33,13 @@ export async function PUT(
   req: NextRequest,
   {params} : { params: { id: string } }
 ) {
-  const {id} = await params
-  const {isDone} = await req.json()
+  const {id} = await  params
+  const {done} = await req.json()
 
   try {
     const updated = await prisma.todo.update({
-      where: { id },
-      data: { isDone},
+      where: {  id: Number(id)},
+      data: { done},
     });
     return NextResponse.json({ message: "Updated", todo: updated });
   } catch (error) {
@@ -61,7 +61,7 @@ export async function DELETE(
 
   try {
     await prisma.todo.delete({
-      where: { id },
+      where: { id: Number(id) },
     });
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {

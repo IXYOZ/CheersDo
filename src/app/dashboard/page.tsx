@@ -48,7 +48,13 @@ export default function Dashboard() {
 
       const res = await fetch(`/api/todo?userID=${userId}`);
       const todoData = await res.json();
-      setTodos(todoData.todos);
+      const loadedTodos: Todo[] = todoData.todos
+      setTodos(loadedTodos);
+
+      const totalPoints = loadedTodos.reduce((sum, t) =>{
+        return t.done ? sum+ getPoints(t.priority): sum
+      },0)
+      setPoints(totalPoints)
     } catch (error) {
       console.error("Failed to fetch todos", error);
     }
@@ -74,7 +80,7 @@ export default function Dashboard() {
           text: todo.text,
           deadline: todo.deadline,
           priority: todo.priority,
-          isDone: todo.done,
+          done: todo.done,
           userEmail: email, // จาก localStorage
         }),
       });
@@ -106,29 +112,29 @@ export default function Dashboard() {
         headers: {
           "Content-Type": "application/json",
           },
-          body: JSON.stringify({ isDone: newDone }),
+          body: JSON.stringify({ done: newDone }),
           });
         console.log("newDone",newDone)
       if (!res.ok) {
         console.error("Failed to update DB");
         return;
       }
+    
 
       setTodos((prev) =>
         prev.map((t) => {
           if (t.id === id) {
             const newDone = !t.done;
-
-            if (newDone) {
-              setPoints((p) => p + getPoints(t.priority));
-            } else {
-              setPoints((p) => p - getPoints(t.priority));
-            }
             return { ...t, done: newDone };
           }
           return t;
         })
       );
+      if (newDone) {
+        setPoints((p) => p + getPoints(targetTodo.priority));
+      } else {
+        setPoints((p) => p - getPoints(targetTodo.priority));
+      }
     } catch (error) {
       console.error("Failed to update DB", error);
     }

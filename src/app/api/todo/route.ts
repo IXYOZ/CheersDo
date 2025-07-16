@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
             where:{userId},
             orderBy: {createdAt:"desc"},
         })
+        
         return NextResponse.json({todos})
     } catch (error) {
         console.error("GET /api/todo/error:", error)
