@@ -33,7 +33,7 @@ export async function PUT(
   req: NextRequest,
   {params} : { params: { id: string } }
 ) {
-  const {id} =  params
+  const {id} = await params
   const {isDone} = await req.json()
 
   try {
