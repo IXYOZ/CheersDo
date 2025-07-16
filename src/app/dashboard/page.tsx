@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Priority = "Low" | "Medium" | "High";
 type Todo = {
@@ -48,13 +49,13 @@ export default function Dashboard() {
 
       const res = await fetch(`/api/todo?userID=${userId}`);
       const todoData = await res.json();
-      const loadedTodos: Todo[] = todoData.todos
+      const loadedTodos: Todo[] = todoData.todos;
       setTodos(loadedTodos);
 
-      const totalPoints = loadedTodos.reduce((sum, t) =>{
-        return t.done ? sum+ getPoints(t.priority): sum
-      },0)
-      setPoints(totalPoints)
+      const totalPoints = loadedTodos.reduce((sum, t) => {
+        return t.done ? sum + getPoints(t.priority) : sum;
+      }, 0);
+      setPoints(totalPoints);
     } catch (error) {
       console.error("Failed to fetch todos", error);
     }
@@ -111,15 +112,14 @@ export default function Dashboard() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ done: newDone }),
-          });
-        console.log("newDone",newDone)
+        },
+        body: JSON.stringify({ done: newDone }),
+      });
+      console.log("newDone", newDone);
       if (!res.ok) {
         console.error("Failed to update DB");
         return;
       }
-    
 
       setTodos((prev) =>
         prev.map((t) => {
@@ -156,8 +156,20 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">CheersDo Dashboard</h1>
-      <p className="mb-6 text-gray-500">You are : {email}</p>
+      <Link href="/login" className="bg-white text-black rounded p-0.5">
+        Back
+      </Link>
+      <div className="flex py-2">
+        <Link href="/">
+          <h1 className="text-2xl font-bold mb-4">CheersDo </h1>
+        </Link>
+        <h1 className="text-2xl font-bold mb-4 px-2">Dashboard</h1>
+      </div>
+      <div>
+        <div className="mb-6 text-gray-500 flex">
+          You are : <p className="font-bold text-white px-2">{email}</p>{" "}
+        </div>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <input
