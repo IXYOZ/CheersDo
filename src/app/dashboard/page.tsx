@@ -1,6 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import DeadlinePicker from "@/components/DeadlinePicker";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
 type Priority = "Low" | "Medium" | "High";
@@ -27,17 +29,18 @@ export default function Dashboard() {
   const [threshold, setThreshold] = useState(10);
   const [deadline, setDeadline] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const { data: session } = useSession();
 
   //checking login
   useEffect(() => {
-    const storedEmail = localStorage.getItem("email");
-    if (!storedEmail) {
+    if (!session?.user?.email) {
       router.push("/login");
     } else {
-      setEmail(storedEmail);
-      fetchUserAndTodos(storedEmail);
+      const email = session.user.email
+      setEmail(email);
+      fetchUserAndTodos(email);
     }
-  }, [router]);
+  }, [session]);
 
   const fetchUserAndTodos = async (email: string) => {
     try {
@@ -156,9 +159,13 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <Link href="/login" className="bg-white text-black rounded p-0.5">
-        Back
-      </Link>
+      <button
+        onClick={() => signOut()}
+        
+        className="bg-white text-black rounded p-0.5"
+      >
+        Logout
+      </button>
       <div className="flex py-2">
         <Link href="/">
           <h1 className="text-2xl font-bold mb-4">CheersDo </h1>
@@ -167,7 +174,12 @@ export default function Dashboard() {
       </div>
       <div>
         <div className="mb-6 text-gray-500 flex">
-          You are : <p className="font-bold text-white px-2">{email}</p>{" "}
+          You are :{" "}
+          {session?.user?.email?(<p className="font-bold text-white px-2">{session.user.email}</p>
+        ):(
+          <p className="text-red-500 px-2">Not logged in</p>
+        )}
+          {" "}
         </div>
       </div>
 
@@ -179,12 +191,9 @@ export default function Dashboard() {
           placeholder="Add new task"
           className="flex-1 border p-2 rounded"
         />
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="border-2 p-2 rounded"
-        />
+        <DeadlinePicker
+          onChange={(dateString) => setDeadline(dateString)}
+        ></DeadlinePicker>
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as Priority)}
