@@ -3,12 +3,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-//POST API todo
+//POST API task
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, deadline, priority, isDone, userEmail } = body;
+    const { title, deadline, priority, done, userEmail } = body;
 
     if (!title  || !priority || !userEmail) {
       return NextResponse.json(
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
     const pointsMap: Record<string, number> = {
       high: 3,
       medium: 2,
@@ -34,28 +35,28 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const newTodo = await prisma.todo.create({
+    const newTask = await prisma.task.create({
       data: {
         title,
-        deadline:deadline ? new Date(deadline) : new Date(),
+        deadline:deadline ? new Date(deadline) : null,
         priority,
-        isDone,
+        done,
         userId: user.id
         //Mocked points
       },
     });
 
-    return NextResponse.json({ message: "Todo created", newTodo, points });
+    return NextResponse.json({ message: "task created", newTask, points });
   } catch (error) {
-    console.error("POST /api/todo error:", error);
+    console.error("POST /api/task error:", error);
     return NextResponse.json(
-      { message: "Failed to create todo" },
+      { message: "Failed to create task" },
       { status: 500 }
     );
   }
 }
 
-// GET /api/todo?userId= ????
+// GET /api/task?userId= ????
 
 export async function GET(req: NextRequest) {
     const {searchParams} = new URL(req.url)
@@ -65,16 +66,15 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({message:"Missing userID"},{status: 400})
     }
     try {
-        const todos = await prisma.todo.findMany({
+        const tasks = await prisma.task.findMany({
             where:{userId},
             orderBy: {createdAt:"desc"},
         })
         
-        return NextResponse.json({todos})
+        return NextResponse.json({tasks})
     } catch (error) {
-        console.error("GET /api/todo/error:", error)
-        return NextResponse.json({message:"Failed to fetch todos"},{status: 500})
+        console.error("GET /api/task/error:", error)
+        return NextResponse.json({message:"Failed to fetch tasks"},{status: 500})
     }
 }
 
-//PUT api/todo/:id

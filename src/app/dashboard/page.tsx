@@ -8,11 +8,19 @@ import Link from "next/link";
 type Priority = "Low" | "Medium" | "High";
 type Todo = {
   id: number;
-  text: string;
+  title: string;
   done: boolean;
   priority: "Low" | "Medium" | "High";
   deadline?: string; //ISO string
+  type: "todo" | "task";
 };
+// type Task = {
+//   id: number;
+//   title: string;
+//   done: boolean;
+//   priority: "Low" | "Medium" | "High";
+//   deadline?: string; //ISO string
+// };
 
 const POINTS_MAP = {
   Low: 1,
@@ -23,42 +31,70 @@ export default function Dashboard() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [todos, setTodos] = useState<Todo[]>([]);
+  //const [tasks, setTasks] = useState<Task[]>([])
   const [newTodo, setNewTodo] = useState("");
   const [priority, setPriority] = useState<Priority>("Low");
   const [points, setPoints] = useState(0);
   const [threshold, setThreshold] = useState(10);
   const [deadline, setDeadline] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [itemType, setItemType] = useState<"todo" | "task">("todo");
 
   //checking login
   useEffect(() => {
-    if (!session?.user?.email) {
+    if (status === "loading") return;
+
+    if (status === "unauthenticated") {
       router.push("/login");
-    } else {
-      const email = session.user.email
+    } else if (session && session.user && session.user.email) {
+      const email = session.user.email ?? "";
       setEmail(email);
       fetchUserAndTodos(email);
     }
-  }, [session]);
+    // const email = session?.user?.email
+    // if(email){
+    //   setEmail(email)
+    //   fetchUserAndTodos(email)
+    // }
+  }, [session, status]);
 
+  if (status === "loading") {
+    return <div className="text-center mt-10">Loading dashboard...</div>;
+  }
   const fetchUserAndTodos = async (email: string) => {
     try {
       const resUser = await fetch(`/api/user?email=${email}`);
       const userData = await resUser.json();
       const userId = userData?.user?.id;
-
       if (!userData) return;
 
-      const res = await fetch(`/api/todo?userID=${userId}`);
-      const todoData = await res.json();
-      const loadedTodos: Todo[] = todoData.todos;
-      setTodos(loadedTodos);
+      const resTodo = await fetch(`/api/todo?userID=${userId}`);
+      const todoData = await resTodo.json();
+      const loadedTodos: Todo[] = (todoData.todos || []).map((t: any) => ({
+        ...t,
+        title: t.title ?? "Untitled",
+        type: "todo",
+      }));
+      const resTask = await fetch(`/api/task?userID=${userId}`);
+      const taskData = await resTask.json();
+      const loadedTasks: Todo[] = (taskData.tasks || []).map((t: any) => ({
+        ...t,
+        title: t.title ?? "Untitled",
+        type: "task",
+      }));
+      setTodos([...loadedTasks, ...loadedTodos]);
 
-      const totalPoints = loadedTodos.reduce((sum, t) => {
+      const totalTodoPoints = loadedTodos.reduce((sum, t) => {
         return t.done ? sum + getPoints(t.priority) : sum;
       }, 0);
+      const totalTaskPoints = loadedTasks.reduce((sum, t) => {
+        return t.done ? sum + getPoints(t.priority) : sum;
+      }, 0);
+      const totalPoints = totalTodoPoints + totalTaskPoints;
       setPoints(totalPoints);
+      console.log("Todos from API:", todoData.todos);
+      console.log("Tasks from API:", taskData.tasks);
     } catch (error) {
       console.error("Failed to fetch todos", error);
     }
@@ -66,27 +102,24 @@ export default function Dashboard() {
 
   const addTodo = async () => {
     if (newTodo.trim() === "") return;
-    const todo: Todo = {
-      id: Date.now(),
-      text: newTodo.trim(),
+
+    const payload = {
+      title: newTodo.trim(),
       done: false,
       priority,
       deadline: deadline || undefined,
+      userEmail: email,
     };
     setIsSaving(true);
     try {
-      const res = await fetch("/api/todo", {
+      const endpoint = itemType === "todo" ? "/api/todo" : "/api/task";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          text: todo.text,
-          deadline: todo.deadline,
-          priority: todo.priority,
-          done: todo.done,
-          userEmail: email, // จาก localStorage
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const errText = await res.text();
@@ -95,56 +128,44 @@ export default function Dashboard() {
         const result = await res.json();
         console.log("Saved to DB:", result);
       }
+      setNewTodo("");
+      setDeadline("");
+      await fetchUserAndTodos(email);
     } catch (error) {
       console.error("API error", error);
     }
-    setTodos([todo, ...todos]);
-    setNewTodo("");
     setIsSaving(false);
-    await fetchUserAndTodos(email);
   };
 
   const getPoints = (p: Priority) => POINTS_MAP[p];
 
-  const toggleTodo = async (id: number) => {
-    const targetTodo = todos.find((t) => t.id === id);
-    if (!targetTodo) return;
-    const newDone = !targetTodo.done;
+  const toggleItem = async (item: Todo) => {
+    const endpoint = item.type === "task" ? "task" : "todo";
+    const newDone = !item.done;
+
     try {
-      const res = await fetch(`/api/todo/${id}`, {
+      const res = await fetch(`/api/${endpoint}/${item.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ done: newDone }),
       });
-      console.log("newDone", newDone);
-      if (!res.ok) {
-        console.error("Failed to update DB");
-        return;
-      }
+      if (!res.ok) throw new Error("Update failed");
 
       setTodos((prev) =>
-        prev.map((t) => {
-          if (t.id === id) {
-            const newDone = !t.done;
-            return { ...t, done: newDone };
-          }
-          return t;
-        })
+        prev.map((t) => (t.id === item.id ? { ...t, done: newDone } : t))
       );
-      if (newDone) {
-        setPoints((p) => p + getPoints(targetTodo.priority));
-      } else {
-        setPoints((p) => p - getPoints(targetTodo.priority));
-      }
+      setPoints((p) =>
+        newDone ? p + getPoints(item.priority) : p - getPoints(item.priority)
+      );
     } catch (error) {
-      console.error("Failed to update DB", error);
+      console.error("Toggle error", error);
     }
   };
 
   const deleteTodo = (id: number) => {
     const todoToDelete = todos.find((t) => t.id === id);
+
+    if (!todoToDelete) return;
     if (todoToDelete?.done) {
       setPoints((p) => p - getPoints(todoToDelete.priority));
     }
@@ -153,7 +174,7 @@ export default function Dashboard() {
 
   const editTodo = (id: number, newText: string) => {
     setTodos((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, text: newText } : t))
+      prev.map((t) => (t.id === id ? { ...t, title: newText } : t))
     );
   };
 
@@ -161,25 +182,26 @@ export default function Dashboard() {
     <div className="p-6 max-w-xl mx-auto">
       <button
         onClick={() => signOut()}
-        
         className="bg-white text-black rounded p-0.5"
       >
         Logout
       </button>
       <div className="flex py-2">
         <Link href="/">
-          <h1 className="text-2xl font-bold mb-4">CheersDo </h1>
+          <h1 className="text-2xl font-bold mb-4 bg-white text-black rounded hover:text-blue-600">
+            CheersDo{" "}
+          </h1>
         </Link>
         <h1 className="text-2xl font-bold mb-4 px-2">Dashboard</h1>
       </div>
       <div>
         <div className="mb-6 text-gray-500 flex">
           You are :{" "}
-          {session?.user?.email?(<p className="font-bold text-white px-2">{session.user.email}</p>
-        ):(
-          <p className="text-red-500 px-2">Not logged in</p>
-        )}
-          {" "}
+          {session?.user?.email ? (
+            <p className="font-bold text-white px-2">{session.user.email}</p>
+          ) : (
+            <p className="text-red-500 px-2">Not logged in</p>
+          )}{" "}
         </div>
       </div>
 
@@ -202,6 +224,13 @@ export default function Dashboard() {
           <option value="Medium">Medium</option>
           <option value="High">High</option>
         </select>
+        <select
+          value={itemType}
+          onChange={(e) => setItemType(e.target.value as "todo" | "task")}
+        >
+          <option value="todo">Todo</option>
+          <option value="task">Task</option>
+        </select>
         <button
           onClick={addTodo}
           className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -213,19 +242,19 @@ export default function Dashboard() {
       <ul className="space-y-2">
         {todos.map((todo) => (
           <li
-            key={todo.id}
+            key={`${todo.type}-${todo.id}`}
             className="flex items-center justify-between bg-gray-100 p-2 rounded"
           >
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={!!todo.done}
-                onChange={() => toggleTodo(todo.id)}
+                onChange={() => toggleItem(todo)}
               />
               <input
                 type="text"
                 autoFocus
-                value={todo.text}
+                value={todo.title}
                 onChange={(e) => editTodo(todo.id, e.target.value)}
                 className={`bg-transparent border-none outline-none w-full text-black px-2
                   ${todo.done ? "line-through text-gray-500" : "text-black"}`}
@@ -246,6 +275,8 @@ export default function Dashboard() {
               >
                 {todo.priority}
               </span>
+              {" - "}
+              <span className="text-black">{todo.type}</span>
             </div>
             <button
               onClick={() => deleteTodo(todo.id)}
