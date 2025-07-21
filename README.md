@@ -13,6 +13,7 @@
 - 🎯 Reward system: Once you hit your threshold, you get a fun message to reward yourself!
 - 🔐 Email-based login (no password required)
 - 🗃️ Data stored in a SQLite database using Prisma ORM
+- Email reminding 
 
 ---
 
@@ -23,6 +24,8 @@
 - [Prisma ORM](https://www.prisma.io/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - SQLite
+- Docker
+- 8n8 AI work flow
 
 ---
 
