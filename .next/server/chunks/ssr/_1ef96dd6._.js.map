@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 6, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 24, "column": 0}, "map": {"version":3,"sources":["file:///Users/ixyo/Documents/cheersdo/src/app/dashboard/page.tsx"],"sourcesContent":["import { useRouter } from \"next/navigation\";\nimport { useEffect, useState } from \"react\";\n\nexport default function Dashboard() {\n  const [email, setEmail] = useState(\"\");\n  const router = useRouter();\n\n  useEffect(() => {\n    const storedEmail = localStorage.getItem(\"email\");\n    if (!storedEmail) {\n      router.push(\"/login\");\n    } else {\n      setEmail(storedEmail);\n    }\n  }, [router]);\n\n  return (\n    <div className=\"p-6\">\n      <h1 className=\"text-xl\">{email}</h1>\n      <p>Welcome to your dashboard</p>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;AAAA;AAAA;AACA;;;;AAEe,SAAS;IACtB,MAAM,CAAC,OAAO,SAAS,GAAG,CAAA,GAAA,qMAAA,CAAA,WAAQ,AAAD,EAAE;IACnC,MAAM,SAAS,CAAA,GAAA,qLAAA,CAAA,YAAS,AAAD;IAEvB,CAAA,GAAA,qMAAA,CAAA,YAAS,AAAD,EAAE;QACR,MAAM,cAAc,aAAa,OAAO,CAAC;QACzC,IAAI,CAAC,aAAa;YAChB,OAAO,IAAI,CAAC;QACd,OAAO;YACL,SAAS;QACX;IACF,GAAG;QAAC;KAAO;IAEX,qBACE,8OAAC;QAAI,WAAU;;0BACb,8OAAC;gBAAG,WAAU;0BAAW;;;;;;0BACzB,8OAAC;0BAAE;;;;;;;;;;;;AAGT","debugId":null}}]
+}
