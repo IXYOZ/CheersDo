@@ -148,7 +148,8 @@ export default function Dashboard() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ done: newDone }),
-      });
+        });
+      console.log("Res here",endpoint,newDone)
       if (!res.ok) throw new Error("Update failed");
 
       setTodos((prev) =>

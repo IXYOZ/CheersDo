@@ -10,13 +10,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const idNum = Number(id);
-    if (isNaN(idNum)) {
-      return NextResponse.json({ message: "Invalid ID" }, { status: 400 });
-    }
+    
     const { id } = params;
     const task = await prisma.task.findUnique({
-      where: { id: Number(id) },
+      where: { id },
     });
     if (!task) {
       return NextResponse.json({ message: "Todo not found" }, { status: 400 });
@@ -41,12 +38,8 @@ export async function PUT(
   const { done } = await req.json();
 
   try {
-    const idNum = Number(id);
-    if (isNaN(idNum)) {
-      return NextResponse.json({ message: "Invalid ID" }, { status: 400 });
-    }
     const updated = await prisma.task.update({
-      where: { id: Number(id) },
+      where: { id },
       data: { done },
     });
     return NextResponse.json({ message: "Updated", task: updated });
@@ -68,12 +61,8 @@ export async function DELETE(
   const { id } = params;
 
   try {
-    const idNum = Number(id);
-    if (isNaN(idNum)) {
-      return NextResponse.json({ message: "Invalid ID" }, { status: 400 });
-    }
     await prisma.task.delete({
-      where: { id: Number(id) },
+      where: { id },
     });
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {
