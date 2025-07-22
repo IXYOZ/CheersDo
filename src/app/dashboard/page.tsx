@@ -103,6 +103,8 @@ export default function Dashboard() {
   const addTodo = async () => {
     if (newTodo.trim() === "") return;
 
+    //const utcDeadline = deadline? new Date(deadline).toISOString : undefined
+
     const payload = {
       title: newTodo.trim(),
       done: false,
