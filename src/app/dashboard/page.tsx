@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import DeadlinePicker from "@/components/DeadlinePicker";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import {DateTime} from "luxon"
+import { getFilterTodo, FilterType } from "@/components/GetFilterTodo";
 
 type Priority = "Low" | "Medium" | "High";
 type Todo = {
@@ -40,7 +42,7 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const { data: session, status } = useSession();
   const [itemType, setItemType] = useState<"todo" | "task">("todo");
-
+  const [filterType, setFilterType] = useState<FilterType>("today")
   //checking login
   useEffect(() => {
     if (status === "loading") return;
@@ -50,7 +52,7 @@ export default function Dashboard() {
     } else if (session && session.user && session.user.email) {
       const email = session.user.email ?? "";
       setEmail(email);
-      fetchUserAndTodos(email);
+      fetchUserAndTodos(email,filterType);
     }
     // const email = session?.user?.email
     // if(email){
@@ -59,10 +61,16 @@ export default function Dashboard() {
     // }
   }, [session, status]);
 
+  useEffect(() => {
+    if (email) {
+      fetchUserAndTodos(email, filterType);
+    }
+  }, [filterType]);
+  
   if (status === "loading") {
     return <div className="text-center mt-10">Loading dashboard...</div>;
   }
-  const fetchUserAndTodos = async (email: string) => {
+  const fetchUserAndTodos = async (email: string , filter: FilterType) => {
     try {
       const resUser = await fetch(`/api/user?email=${email}`);
       const userData = await resUser.json();
@@ -83,15 +91,20 @@ export default function Dashboard() {
         title: t.title ?? "Untitled",
         type: "task",
       }));
-      setTodos([...loadedTasks, ...loadedTodos]);
+      const allTodos = [...loadedTasks, ...loadedTodos]
+      const filtered = getFilterTodo(allTodos,filter)
+      setTodos(filtered);
 
-      const totalTodoPoints = loadedTodos.reduce((sum, t) => {
-        return t.done ? sum + getPoints(t.priority) : sum;
-      }, 0);
-      const totalTaskPoints = loadedTasks.reduce((sum, t) => {
-        return t.done ? sum + getPoints(t.priority) : sum;
-      }, 0);
-      const totalPoints = totalTodoPoints + totalTaskPoints;
+      // const totalTodoPoints = loadedTodos.reduce((sum, t) => {
+      //   return t.done ? sum + getPoints(t.priority) : sum;
+      // }, 0);
+      // const totalTaskPoints = loadedTasks.reduce((sum, t) => {
+      //   return t.done ? sum + getPoints(t.priority) : sum;
+      // }, 0);
+      //const totalPoints = totalTodoPoints + totalTaskPoints;
+      const totalPoints = filtered.reduce((sum, t) =>{
+        return t.done? sum+getPoints(t.priority): sum
+      },0)
       setPoints(totalPoints);
       console.log("Todos from API:", todoData.todos);
       console.log("Tasks from API:", taskData.tasks);
@@ -100,16 +113,20 @@ export default function Dashboard() {
     }
   };
 
+  
+//console.log("Filter changed to :", filterType)
   const addTodo = async () => {
     if (newTodo.trim() === "") return;
 
-    //const utcDeadline = deadline? new Date(deadline).toISOString : undefined
-
+    const localInput = deadline
+    const taskTZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const deadlineInUTC = DateTime.fromISO(localInput, { zone: taskTZ}).toUTC()
     const payload = {
       title: newTodo.trim(),
       done: false,
       priority,
-      deadline: deadline || undefined,
+      deadline: deadlineInUTC || undefined,
+      timezone:taskTZ,
       userEmail: email,
     };
     setIsSaving(true);
@@ -132,12 +149,14 @@ export default function Dashboard() {
       }
       setNewTodo("");
       setDeadline("");
-      await fetchUserAndTodos(email);
+      await fetchUserAndTodos(email, filterType);
     } catch (error) {
       console.error("API error", error);
     }
     setIsSaving(false);
   };
+
+  
 
   const getPoints = (p: Priority) => POINTS_MAP[p];
 
@@ -242,6 +261,17 @@ export default function Dashboard() {
           Add
         </button>
       </div>
+      <div className="flex py-2 ">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value as FilterType)}>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="year">This Year</option>
+        </select>
+          {itemType == "task" && (
+          <span className="text-sm justify-items-end px-19 text-red-500">Selected task for E-mail notifications</span>
+          )}
+      </div>
       <ul className="space-y-2">
         {todos.map((todo) => (
           <li
@@ -264,7 +294,9 @@ export default function Dashboard() {
               />
               {todo.deadline && (
                 <span className="text-xs text-gray-500 ml-2">
-                  🕒{new Date(todo.deadline).toLocaleString()}
+                  🕒{DateTime.fromISO(todo.deadline, { zone: "utc"})
+                      .setZone(todo.timezone || "UTC")
+                      .toFormat("HH:mm dd/MM/yyyy")}
                 </span>
               )}
               <span
@@ -311,6 +343,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      
     </div>
   );
 }

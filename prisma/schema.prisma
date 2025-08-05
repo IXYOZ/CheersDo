@@ -30,6 +30,7 @@ model Todo {
   id        Int      @id @default(autoincrement())
   title     String   @default("Untitled")
   deadline  DateTime
+  timezone  String    @default("UTC")
   done      Boolean  @default(false)
   user      User     @relation(fields: [userId], references: [id])
   userId    String
@@ -77,6 +78,7 @@ model Task {
   id           String    @id @default(cuid())
   title        String
   deadline     DateTime?
+  timezone     String    @default("UTC")
   priority     String    @default("low") // low | medium | high
   done         Boolean   @default(false)
   userId       String

@@ -78,7 +78,7 @@ const prisma = new __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f
 async function POST(req) {
     try {
         const body = await req.json();
-        const { title, deadline, priority, done, userEmail } = body;
+        const { title, deadline, priority, done, userEmail, timezone } = body;
         if (!title || !priority || !userEmail) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 message: "Missing required fields"
@@ -111,6 +111,7 @@ async function POST(req) {
                 title,
                 deadline: deadline ? new Date(deadline) : null,
                 priority,
+                timezone,
                 done,
                 userId: user.id
             }

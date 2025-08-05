@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, deadline, priority, isDone, userEmail } = body;
+    const { title, deadline, priority, isDone, userEmail,timezone } = body;
 
     if (!title  || !priority || !userEmail) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
         deadline:deadline ? new Date(deadline) : new Date(),
         priority,
         isDone,
+        timezone,
         userId: user.id
         //Mocked points
       },

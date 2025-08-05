@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, deadline, priority, done, userEmail } = body;
+    const { title, deadline, priority, done, userEmail,timezone } = body;
 
     if (!title  || !priority || !userEmail) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
         title,
         deadline:deadline ? new Date(deadline) : null,
         priority,
+        timezone,
         done,
         userId: user.id
         //Mocked points
@@ -77,4 +78,3 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({message:"Failed to fetch tasks"},{status: 500})
     }
 }
-
